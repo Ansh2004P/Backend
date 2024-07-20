@@ -4,6 +4,7 @@ import { User } from "../models/user.models.js"
 import { uploadOnCloudinary } from "../utils/cloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
 import jwt from "jsonwebtoken"
+import fs from "fs"
 
 const generateAccessAndRefreshToken = async (userId) => {
     try {
@@ -27,8 +28,8 @@ const registerUser = asyncHandler(async (req, res) => {
     // Steps to register a user:
     // - get user details from frontend
     // - validate: not empty fields, email format, password length
-    // - check if user already exists
     // - check for images, check for avatar
+    // - check if user already exists
     // - upload them to cloudinary, avatar
     // - create user object - create entry in db
     // - remove password and refresh token field from response
@@ -45,39 +46,42 @@ const registerUser = asyncHandler(async (req, res) => {
         throw new ApiError(400, "All fields are required")
     }
 
-    //  step 2: validate: not empty fields, email format, password length
+       // step 2: check for images, check for avatar
+       let coverImageLocalPath, avatarLocalPath
+
+       if (
+           req.files &&
+           Array.isArray(req.files.coverImage) &&
+           req.files.coverImage.length > 0
+       ) {
+           coverImageLocalPath = req.files.coverImage[0].path
+       }
+   
+       if (
+           req.files &&
+           Array.isArray(req.files.avatar) &&
+           req.files.avatar.length > 0
+       ) {
+           avatarLocalPath = req.files.avatar[0].path
+       } else {
+           avatarLocalPath =
+               "https://icon-library.com/images/anonymous-avatar-icon/anonymous-avatar-icon-25.jpg"
+       }
+   
+
+    //  step 3: validate: not empty fields, email format, password length
     const existedUser = await User.findOne({
         $or: [{ email }, { username }],
     })
 
     if (existedUser) {
+        fs.unlinkSync(coverImageLocalPath)
+        fs.unlinkSync(avatarLocalPath)
         throw new ApiError(409, "User with username or email already exists")
     }
 
-    console.log(req.files)
-
-    // step 3: check for images, check for avatar
-    let coverImageLocalPath, avatarLocalPath
-
-    if (
-        req.files &&
-        Array.isArray(req.files.coverImage) &&
-        req.files.coverImage.length > 0
-    ) {
-        coverImageLocalPath = req.files.coverImage[0].path
-    }
-
-    if (
-        req.files &&
-        Array.isArray(req.files.avatar) &&
-        req.files.avatar.length > 0
-    ) {
-        avatarLocalPath = req.files.avatar[0].path
-    } else {
-        avatarLocalPath =
-            "https://icon-library.com/images/anonymous-avatar-icon/anonymous-avatar-icon-25.jpg"
-    }
-
+    // console.log(req.files)
+    
     // step 4: upload them to cloudinary, avatar
     const avatar = await uploadOnCloudinary(avatarLocalPath)
     const coverImage = await uploadOnCloudinary(coverImageLocalPath)
