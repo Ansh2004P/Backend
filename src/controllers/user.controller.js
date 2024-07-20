@@ -38,6 +38,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
     //  step 1: get user details from frontend
     const { fullName, email, username, password } = req.body
+    console.log(req)
     if (
         [fullName, email, username, password].some(
             (field) => field?.trim() === ""
@@ -46,28 +47,27 @@ const registerUser = asyncHandler(async (req, res) => {
         throw new ApiError(400, "All fields are required")
     }
 
-       // step 2: check for images, check for avatar
-       let coverImageLocalPath, avatarLocalPath
+    // step 2: check for images, check for avatar
+    let coverImageLocalPath, avatarLocalPath
 
-       if (
-           req.files &&
-           Array.isArray(req.files.coverImage) &&
-           req.files.coverImage.length > 0
-       ) {
-           coverImageLocalPath = req.files.coverImage[0].path
-       }
-   
-       if (
-           req.files &&
-           Array.isArray(req.files.avatar) &&
-           req.files.avatar.length > 0
-       ) {
-           avatarLocalPath = req.files.avatar[0].path
-       } else {
-           avatarLocalPath =
-               "https://icon-library.com/images/anonymous-avatar-icon/anonymous-avatar-icon-25.jpg"
-       }
-   
+    if (
+        req.files &&
+        Array.isArray(req.files.coverImage) &&
+        req.files.coverImage.length > 0
+    ) {
+        coverImageLocalPath = req.files.coverImage[0].path
+    }
+
+    if (
+        req.files &&
+        Array.isArray(req.files.avatar) &&
+        req.files.avatar.length > 0
+    ) {
+        avatarLocalPath = req.files.avatar[0].path
+    } else {
+        avatarLocalPath =
+            "https://icon-library.com/images/anonymous-avatar-icon/anonymous-avatar-icon-25.jpg"
+    }
 
     //  step 3: validate: not empty fields, email format, password length
     const existedUser = await User.findOne({
@@ -81,7 +81,7 @@ const registerUser = asyncHandler(async (req, res) => {
     }
 
     // console.log(req.files)
-    
+
     // step 4: upload them to cloudinary, avatar
     const avatar = await uploadOnCloudinary(avatarLocalPath)
     const coverImage = await uploadOnCloudinary(coverImageLocalPath)
@@ -130,6 +130,8 @@ const loginUser = asyncHandler(async (req, res) => {
 
     // step 1: get user details from frontend
     const { email, username, password } = req.body
+    // pass json data, not form-data to configure form-data use multer middleware and as we do not need any files use upload.none() and other way around is use express-formidable middleware
+    // console.log(req.body)
 
     if (!username && !email) {
         throw new ApiError(400, "username or email is required")
@@ -161,21 +163,22 @@ const loginUser = asyncHandler(async (req, res) => {
         httpsOnly: true,
         secure: true,
     }
-
-    return (
-        res
-            .status(200)
-            .cookie("accessToken", accessToken, options)
-            .cookie("refreshToken", refreshToken, options)
-            .json(
-                new ApiResponse(200, {
+    console.log("user login succesfully")
+    return res
+        .status(200)
+        .cookie("accessToken", accessToken, options)
+        .cookie("refreshToken", refreshToken, options)
+        .json(
+            new ApiResponse(
+                200,
+                {
                     user: loggedInUser,
                     accessToken,
                     refreshToken,
-                })
-            ),
-        "User logged in successfully"
-    )
+                },
+                "User logged in successfully"
+            )
+        )
 })
 
 const logoutUser = asyncHandler(async (req, res) => {
