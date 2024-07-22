@@ -35,7 +35,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
 
         pipeline.push({
             $match: {
-                owner: mongoose.Types.ObjectId(userId),
+                owner: { $eq: { $toObjectId: userId } },
             },
         })
     }
