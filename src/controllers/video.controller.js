@@ -133,11 +133,98 @@ const publishAVideo = asyncHandler(async (req, res) => {
 const getVideoById = asyncHandler(async (req, res) => {
     const { videoId } = req.params
     //TODO: get video by id
+
+    // checking videoId is given or not
+    if (!videoId) {
+        throw new ApiError(400, "videoId is required!!!")
+    }
+
+    //finding video based on Id
+    const video = await Video.findById(videoId)
+
+    //checking video is exists or not, is made public or not
+    if (!video || !video?.isPublished) {
+        throw new ApiError(404, "Video not found")
+    }
+
+    return res
+        .status(200)
+        .json(new ApiResponse(404, video, "Video fetched successfully"))
 })
 
 const updateVideo = asyncHandler(async (req, res) => {
-    const { videoId } = req.params
     //TODO: update video details like title, description, thumbnail
+
+    //checking videoId is given or not
+    const { videoId } = req.params
+    if (!videoId) {
+        throw new ApiError(400, "videoId is required!!!")
+    }
+
+    // checking video is exists or not
+    const video = await Video.findById(videoId)
+    if (!video) {
+        throw new ApiError(404, "Video not found")
+    }
+
+    //Checking for the user trying to update the video is the owner of the video or not
+    const isOwner = await isUserOwner(videoId, req)
+    if (!isOwner) {
+        throw new ApiError(300, "Unauthorized access")
+    }
+
+    //getting the part which is to be updated by user and validating if any one of them are provided or not
+    const { title = video.title, description = video.description } = req.body
+    const newVideo = req.files["newVideo"] ? req.files["newVideo"][0] : null
+    const newThumbNail = req.files["newThumbNail"]
+        ? req.files["newThumbNail"][0]
+        : null
+    if (!newVideo || !newThumbNail) {
+        throw new ApiError(400, "All fields cannot be empty")
+    }
+
+    let updatedVideo, updatedThumbnail
+    //uploading newVideo or/and newThumbNail to cloudinary after validating if they are provided or not
+    if (newVideo) {
+        updatedVideo = await uploadOnCloudinary(newVideo.path)
+        if (!updatedVideo?.url) {
+            throw new ApiError(500, "Failed to upload video")
+        }
+    }
+
+    if (newThumbNail) {
+        updatedThumbnail = await uploadOnCloudinary(newThumbNail.path)
+        if (!updatedThumbnail?.url) {
+            throw new ApiError(500, "Failed to upload thumbnail")
+        }
+    }
+
+    //updating the new details
+    const updatedDetails = await Video.findByIdAndUpdate(
+        videoId,
+        {
+            $set: {
+                title: title,
+                description: description,
+                thumbNail: updatedThumbnail?.url,
+                videoFile: updatedVideo?.url,
+                duration: updatedVideo?.duration,
+            },
+        },
+        { new: true }
+    )
+    if (!updatedDetails) {
+        throw new ApiError(
+            500,
+            "Something went wrong while updating the details"
+        )
+    }
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(200, updatedDetails, "Video Updated Successfully")
+        )
 })
 
 const deleteVideo = asyncHandler(async (req, res) => {
