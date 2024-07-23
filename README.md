@@ -58,6 +58,7 @@ This project is the backend for a YouTube-like application that includes all cor
 
     The API uses HTTP status codes and custom error messages to indicate issues. Common error responses include:
 
+   - **200 Success:** operation is successful
    - **300 Unauthorized:** Authentication issues.
    - **400 User Error:** data parsing error.
    - **404 Not Found:** Resource not found.
