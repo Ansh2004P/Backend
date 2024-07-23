@@ -52,7 +52,7 @@ This project is the backend for a YouTube-like application that includes all cor
 4. **Run the Application:**
 
      ```bash
-     npm start
+     npm run dev
 
 5.  **Error Handling**
 
