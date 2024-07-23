@@ -23,7 +23,7 @@ const getChannelStats = asyncHandler(async (req, res) => {
                     from: "likes",
                     localField: "_id",
                     foreignField: "video",
-                    as: "Likes",
+                    as: "Likes", 
                 },
             },
             {
